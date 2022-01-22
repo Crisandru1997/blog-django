@@ -20,7 +20,8 @@ from django.contrib.auth.decorators import login_required
 # En una vista decidimos qué (modelo) se mostrará en una plantilla.
 
 def post_list(request):
-    posts = Post.objects.all().order_by('published_date')
+    # posts = Post.objects.all().order_by('published_date')
+    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
     # render que reproduce (construye) nuestra plantilla blog/post_list.html.
     return render(request, 'blog/post_list.html', {'posts':posts})
 
@@ -38,6 +39,7 @@ def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
     return render(request, 'blog/post_detail.html', {'post':post})
 
+@login_required
 def post_new(request):
     # Cuando enviamos el formulario somos redirigidos a la misma vista, 
     # pero esta vez tenemos algunos datos adicionales en request, 
@@ -59,13 +61,14 @@ def post_new(request):
             # , pero en este caso, tenemos que hacerlo. post.save() 
             # conservará los cambios (añadiendo a autor) y se creará una nuevo post en el blog!
             post.author = request.user
-            post.published_date = timezone.now()
+            # post.published_date = timezone.now() # Lo publicamos altiro.
             post.save()
             return redirect('post_detail', pk=post.pk)
     else:
         form = PostForm()
     return render(request, 'blog/post_edit.html', {'form':form})
 
+@login_required
 def post_edit(request, pk):
     # Segundo: obtenemos el modelo Post que queremos editar con 
     # get_object_or_404(Post, pk=pk) y después, al crear el formulario
@@ -77,12 +80,31 @@ def post_edit(request, pk):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
-            post.published_date = timezone.now()
+            # post.published_date = timezone.now() # Lo publicamos altiro.
             post.save()
             return redirect('post_detail', pk=post.pk)
     else:
         form = PostForm()
     return render(request, 'blog/post_edit.html', {'form':form})
+
+@login_required
+def post_draft_list(request):
+    posts = Post.objects.filter(published_date__isnull=True).order_by('created_date')
+    return render(request, 'blog/post_draft_list.html', {'posts': posts})
+
+@login_required
+def post_publish(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    post.publish()
+    return redirect('post_detail', pk=pk)
+
+@login_required
+def post_remove(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    # La única cosa nueva es en realidad, eliminar el post. 
+    # Cada modelo en django puede ser eliminado con .delete(). ¡Así de simple!
+    post.delete()
+    return redirect('post_list')
 
 def add_comment_to_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
