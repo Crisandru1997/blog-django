@@ -1,6 +1,6 @@
-from dataclasses import field
+from dataclasses import field, fields
 from django import forms
-from .models import Post
+from .models import Post, Comment
 
 # Le indicamos a Django que PostForm es un formulario mediante forms.ModelForm.
 class PostForm(forms.ModelForm):
@@ -12,3 +12,8 @@ class PostForm(forms.ModelForm):
         # será la persona que está conectada (¡tú!) y created_date se definirá 
         # automáticamente cuando creemos un post (es decir, en el código)
         fields = ('title', 'text')
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ('author', 'text')
